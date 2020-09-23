@@ -16,7 +16,7 @@ namespace SOEMGui {
     public:
         static EthercatBus& getBus();
 
-        bool openBus(const std::string ifname);
+        bool openBus(const std::string_view ifname);
         void closeBus();
         bool updateBus();
 

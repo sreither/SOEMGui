@@ -8,7 +8,7 @@ namespace SOEMGui {
     class EthercatUnit
     {
     public:
-        explicit EthercatUnit(const std::string& adapterName);
+        explicit EthercatUnit(const std::string_view adapterName);
         ~EthercatUnit();
 
         void printCurrentSlaveOutputs() const;

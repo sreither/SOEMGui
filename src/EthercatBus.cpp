@@ -15,9 +15,9 @@ EthercatBus &EthercatBus::getBus()
     return instance;
 }
 
-bool EthercatBus::openBus(const std::string ifname)
+bool EthercatBus::openBus(const std::string_view ifname)
 {
-    if (ec_init(ifname.c_str()) > 0)
+    if (ec_init(ifname.data()) > 0)
     {
         std::cerr << "Initialized bus\n";
         return true;

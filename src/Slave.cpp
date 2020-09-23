@@ -144,7 +144,7 @@ std::string Slave::toString() const
     return ss.str();
 }
 
-PDOValueT Slave::getOutputValue(const std::string& pdoName, unsigned int subIndex) const
+PDOValueT Slave::getOutputValue(const std::string_view pdoName, unsigned int subIndex) const
 {
 //    std::cerr << pdoName << " " << subIndex << " " << m_output_name_id_to_sub_entries_map.at(pdoName).size() << "\n";
 //    std::cerr << m_output_name_id_to_sub_entries_map.at(pdoName).count(subIndex) << "\n";
@@ -153,7 +153,7 @@ PDOValueT Slave::getOutputValue(const std::string& pdoName, unsigned int subInde
 //        std::cerr << key << " - " << value << "\n";
 //    }
 
-    const PDOSubEntry* entry = m_output_name_id_to_sub_entries_map.at(pdoName).at(subIndex);
+    const PDOSubEntry* entry = m_output_name_id_to_sub_entries_map.at(pdoName.data()).at(subIndex);
     switch(entry->datatype)
     {
     case ECT_INTEGER8:

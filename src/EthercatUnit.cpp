@@ -11,7 +11,7 @@
 
 using namespace SOEMGui;
 
-EthercatUnit::EthercatUnit(const std::string& adapterName)
+EthercatUnit::EthercatUnit(const std::string_view adapterName)
 {
     EthercatBus m_bus = EthercatBus::getBus();
     if (m_bus.openBus(adapterName))

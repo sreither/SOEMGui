@@ -45,7 +45,7 @@ namespace SOEMGui {
         void setOutputs(void* outputPtr);
         
         std::string toString() const;
-        PDOValueT getOutputValue(const std::string& pdoName, unsigned int subIndex) const;
+        PDOValueT getOutputValue(const std::string_view pdoName, unsigned int subIndex) const;
         PDOValueT setInputValue(const PDOSubEntry& entry) const;
 
         std::vector<std::string> getInputPDONames() const;
