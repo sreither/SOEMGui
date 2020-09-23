@@ -79,7 +79,7 @@ void EthercatUnit::printCurrentSlaveOutputs() const
             for (unsigned int i = 1; i <= entries.size(); i++)
             {
                 ss << std::left << std::setw(20) << entries.at(i-1).name << ":\t"
-                   << std::to_string(std::get<int32_t>(m_slaves.begin()->getOutputValue(outName, i))) << "\n";
+                   << PDOValue_toString(slave.getOutputValue(outName, i)) << "\n";
             }
         }
     }

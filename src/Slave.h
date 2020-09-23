@@ -33,7 +33,26 @@ namespace SOEMGui {
         std::vector<PDOEntry> slaveInputs;
     };
 
-    using PDOValueT = std::variant<int8_t, int16_t, int32_t, std::string>;
+    using PDOValueT = std::variant<int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t, std::string>;
+
+    template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+    template<class... Ts> overload(Ts...) -> overload<Ts...>;
+    inline std::string PDOValue_toString(PDOValueT value)
+    {
+        std::string r;
+        std::visit(overload{
+                       [&](int8_t& v)       { r = std::to_string(v);},
+                       [&](int16_t& v)      { r = std::to_string(v);},
+                       [&](int32_t& v)      { r = std::to_string(v);},
+                       [&](int64_t& v)      { r = std::to_string(v);},
+                       [&](uint8_t& v)       { r = std::to_string(v);},
+                       [&](uint16_t& v)      { r = std::to_string(v);},
+                       [&](uint32_t& v)      { r = std::to_string(v);},
+                       [&](uint64_t& v)      { r = std::to_string(v);},
+                       [&](auto&& v)         { r = "Unknown value type";}
+                   }, value);
+        return r;
+    }
 
     class Slave
     {

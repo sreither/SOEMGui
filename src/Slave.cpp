@@ -166,33 +166,42 @@ PDOValueT Slave::getOutputValue(const std::string_view pdoName, unsigned int sub
                                     static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
                                     static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16);
     case ECT_INTEGER32:
-
-//        std::cerr << helper::hex_toString(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8))) << "\n";
-//        std::cerr << helper::hex_toString(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8) << "\n";
-//        std::cerr << helper::hex_toString(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16) << "\n";
-//        std::cerr << helper::hex_toString(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24) << "\n";
-//        std::cerr << helper::hex_toString(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
-//                                          static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
-//                                          static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
-//                                          static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24
-//                ) << "\n";
-
         return static_cast<int32_t>(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
-                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
-                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
-                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24);
-//    case ECT_INTEGER64:
-//        return "ECT_INTEGER64";
-//    case ECT_UNSIGNED8:
-//        return "ECT_UNSIGNED8";
-//    case ECT_UNSIGNED16:
-//        return "ECT_UNSIGNED16";
-//    case ECT_UNSIGNED24:
-//        return "ECT_UNSIGNED24";
-//    case ECT_UNSIGNED32:
-//        return "ECT_UNSIGNED32";
-//    case ECT_UNSIGNED64:
-//        return "ECT_UNSIGNED64";
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24);
+    case ECT_INTEGER64:
+        return static_cast<int64_t>(static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 4)) << 32 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 5)) << 40 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 6)) << 48 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 7)) << 56);
+    case ECT_UNSIGNED8:
+        return static_cast<uint8_t>(m_outputs->at(entry->totalOffsetInBits / 8));
+    case ECT_UNSIGNED16:
+        return static_cast<uint16_t>(static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8);
+    case ECT_UNSIGNED24:
+        return static_cast<uint32_t>(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16);
+    case ECT_UNSIGNED32:
+        return static_cast<uint32_t>(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24);
+    case ECT_UNSIGNED64:
+        return static_cast<uint64_t>(static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 3)) << 24 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 4)) << 32 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 5)) << 40 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 6)) << 48 |
+                                    static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 7)) << 56);
     default:
         return "Unknown type";
     }
@@ -230,4 +239,3 @@ bool Slave::validatePDODescription(const PDODescription &desc) const
 
     return valid;
 }
-
