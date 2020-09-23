@@ -19,6 +19,9 @@ set(SOURCES
 add_executable(${EXE_Name} main.cpp ${HEADERS} ${SOURCES})
 
 if (SOEM_FOUND)
+    message(STATUS ${SOEM_INCLUDE_DIR})
+    message(STATUS ${SOEM_LIBRARIES})
+
     target_include_directories("${EXE_Name}" SYSTEM PUBLIC ${SOEM_INCLUDE_DIR})
     target_link_libraries("${EXE_Name}" PUBLIC ${SOEM_LIBRARIES})
 endif()

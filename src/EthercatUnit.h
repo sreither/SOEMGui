@@ -11,6 +11,8 @@ namespace SOEMGui {
         explicit EthercatUnit(const std::string_view adapterName);
         ~EthercatUnit();
 
+        void initSlaves();
+        bool run();
         void printCurrentSlaveOutputs() const;
     private:
         void printSlaves() const;

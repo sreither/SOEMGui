@@ -42,15 +42,10 @@ bool EthercatBus::updateBus()
         int lastWorkCounter = ec_receive_processdata(EC_TIMEOUTMON * 10);
         if (lastWorkCounter >= m_expectedWKC)
         {
-//            for (auto i = 0; i < ec_slave[0].Ibytes; i++)
-//            {
-//                printf(" %2.2x", *(ec_slave[0].inputs + i));
-//            }
-//            printf("\n");
-//            printf(" T:%"PRId64"\n",ec_DCtime);
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 bool EthercatBus::waitUntilAllSlavesReachedOP()
@@ -163,11 +158,14 @@ PDODescription EthercatBus::createPDODescription(uint16_t slaveId) const
 
                 memset(&OElist, 0, sizeof(OElist));
                 ec_readOE(i, &ODlist, &OElist);
-                for(uint16_t j = 1 ; j < ODlist.MaxSub[i]+1 ; j++)
+                uint16_t id = 0;
+                for(uint16_t j = 0 ; j < ODlist.MaxSub[i]+1 ; j++)
                 {
-                    if ((OElist.DataType[j] > 0) && (OElist.BitLength[j] > 0))
+                    bool isSubIndexEntry = std::string(OElist.Name[j]).rfind("SubIndex", 0) == 0;
+                    if ((OElist.DataType[j] > 0) && (OElist.BitLength[j] > 0) && !isSubIndexEntry)
                     {
-                        pdoE.entries.emplace_back(PDOSubEntry{OElist.Name[j], j, static_cast<ec_datatype>(OElist.DataType[j]), OElist.BitLength[j]});
+                        pdoE.entries.emplace_back(PDOSubEntry{OElist.Name[j], id, static_cast<ec_datatype>(OElist.DataType[j]), OElist.BitLength[j]});
+                        id++;
                     }
                 }
 

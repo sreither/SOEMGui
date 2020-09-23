@@ -14,6 +14,8 @@ namespace SOEMGui {
     class EthercatBus
     {
     public:
+        EthercatBus(EthercatBus const&)     = delete;
+        void operator=(EthercatBus const&)  = delete;
         static EthercatBus& getBus();
 
         bool openBus(const std::string_view ifname);

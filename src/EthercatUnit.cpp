@@ -13,25 +13,8 @@ using namespace SOEMGui;
 
 EthercatUnit::EthercatUnit(const std::string_view adapterName)
 {
-    EthercatBus m_bus = EthercatBus::getBus();
-    if (m_bus.openBus(adapterName))
+    if (!EthercatBus::getBus().openBus(adapterName))
     {
-        if (m_bus.waitUntilAllSlavesReachedOP())
-        {
-            m_slaves = m_bus.createSlaves();
-            printSlaves();
-
-            for (auto i = 0; i < 1000; i++)
-            {
-                osal_usleep(1000);
-                if (m_bus.updateBus())
-                {
-                    printCurrentSlaveOutputs();
-                }
-            }
-        }
-    }
-    else {
         std::cerr << "Could not open ethercat bus, try executing as root\n";
     }
 }
@@ -39,6 +22,29 @@ EthercatUnit::EthercatUnit(const std::string_view adapterName)
 EthercatUnit::~EthercatUnit()
 {
     EthercatBus::getBus().closeBus();
+}
+
+void EthercatUnit::initSlaves()
+{
+    if (EthercatBus::getBus().waitUntilAllSlavesReachedOP())
+    {
+        m_slaves = EthercatBus::getBus().createSlaves();
+        printSlaves();
+    }
+}
+
+bool EthercatUnit::run()
+{
+    if (EthercatBus::getBus().updateBus())
+    {
+        printCurrentSlaveOutputs();
+        return true;
+    }
+    else
+    {
+        std::cerr << "Could not update bus.\n";
+        return false;
+    }
 }
 
 void EthercatUnit::printCurrentSlaveOutputs() const
@@ -52,7 +58,7 @@ void EthercatUnit::printCurrentSlaveOutputs() const
     {
         for (auto j = 0; j < linesToClear; j++)
         {
-            ss << "\033[1A";
+            ss << "\033[1A" << "\033[K";
         }
     }
     else
@@ -62,7 +68,7 @@ void EthercatUnit::printCurrentSlaveOutputs() const
             linesToClear++;
             for (const auto& outName : slave.getOutputPDONames())
             {
-                linesToClear += slave.getOutputPDOEntryRef(outName).entries.size();
+                linesToClear += slave.getOutputPDOEntryRef(outName).entries.size() + 1;
             }
         }
         linesToClear += 1;
@@ -76,9 +82,10 @@ void EthercatUnit::printCurrentSlaveOutputs() const
         for (const auto& outName : slave.getOutputPDONames())
         {
             auto entries = slave.getOutputPDOEntryRef(outName).entries;
-            for (unsigned int i = 1; i <= entries.size(); i++)
+            ss << "--- " << outName << " ---\n";
+            for (unsigned int i = 0; i < entries.size(); i++)
             {
-                ss << std::left << std::setw(20) << entries.at(i-1).name << ":\t"
+                ss << std::left << std::setw(20) << entries.at(i).name << ":\t"
                    << PDOValue_toString(slave.getOutputValue(outName, i)) << "\n";
             }
         }
