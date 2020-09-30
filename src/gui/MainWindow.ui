@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>855</width>
-    <height>624</height>
+    <width>984</width>
+    <height>554</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,14 +16,29 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QPushButton" name="pushButton">
-      <property name="text">
-       <string>PushButton</string>
+     <widget class="QTreeView" name="treeView">
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditKeyPressed</set>
       </property>
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="indentation">
+       <number>20</number>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+      <attribute name="headerDefaultSectionSize">
+       <number>200</number>
+      </attribute>
+      <attribute name="headerHighlightSections">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="headerStretchLastSection">
+       <bool>true</bool>
+      </attribute>
      </widget>
-    </item>
-    <item>
-     <widget class="QTreeView" name="treeView"/>
     </item>
    </layout>
   </widget>
@@ -32,7 +47,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>855</width>
+     <width>984</width>
      <height>22</height>
     </rect>
    </property>

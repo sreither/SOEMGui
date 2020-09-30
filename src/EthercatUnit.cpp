@@ -1,13 +1,11 @@
 #include "EthercatUnit.h"
+#include "Slave.h"
 
 #include <iostream>
 #include <sstream>
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
 #include <unistd.h>
-#endif
+
 
 using namespace SOEMGui;
 
@@ -41,6 +39,7 @@ bool EthercatUnit::initSlaves()
 
 bool EthercatUnit::run()
 {
+    std::scoped_lock lock(m_update_mutex);
     if (EthercatBus::getBus().updateBus())
     {
         return true;
@@ -130,15 +129,28 @@ PDOValueT EthercatUnit::getValue(std::size_t hash) const
     {
         if (s.hasEntry(hash))
         {
-            return s.getOutputValue(hash);
+            return s.getValue(hash);
         }
     }
     throw std::logic_error("No slave has entry with hash" + std::to_string(hash));
 }
 
-bool EthercatUnit::setValue(std::size_t hash, PDOValueT value)
+bool EthercatUnit::setInputValue(unsigned int slaveId, const std::string_view pdoName, unsigned int subIndex, PDOValueT value)
 {
-    return false;
+    return m_slaves.at(slaveId).setInputValue(pdoName, subIndex, value);
+}
+
+bool EthercatUnit::setInputValue(std::size_t hash, PDOValueT value)
+{
+    std::scoped_lock lock(m_update_mutex);
+    for (Slave& s : m_slaves)
+    {
+        if (s.hasEntry(hash))
+        {
+            return s.setInputValue(hash, value);
+        }
+    }
+    throw std::logic_error("No slave has entry with hash" + std::to_string(hash));
 }
 
 void EthercatUnit::printSlaves() const

@@ -55,12 +55,12 @@ Slave::Slave(unsigned int ID, std::string name, PDODescription pdo) :
 
 void Slave::setInputs(void *inputPtr)
 {
-    m_inputs = static_cast<InputT*>(inputPtr);
+    m_inputs = static_cast<ValueArrayT*>(inputPtr);
 }
 
 void Slave::setOutputs(void *outputPtr)
 {
-    m_outputs = static_cast<OutputT*>(outputPtr);
+    m_outputs = static_cast<ValueArrayT*>(outputPtr);
 }
 
 bool Slave::hasEntry(std::size_t hash) const
@@ -136,6 +136,62 @@ std::string Slave::currentOutputsToString() const
     return ss.str();
 }
 
+PDOValueT Slave::getValue(const PDOSubEntry *entry) const
+{
+    ValueArrayT *data = (entry->direction == Input) ? m_inputs : m_outputs;
+    switch(entry->datatype)
+    {
+    case ECT_INTEGER8:
+        return static_cast<int8_t>(data->at(entry->totalOffsetInBits / 8));
+    case ECT_INTEGER16:
+        return static_cast<int16_t>(static_cast<uint16_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint16_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8);
+    case ECT_INTEGER24:
+        return static_cast<int32_t>(static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16);
+    case ECT_INTEGER32:
+        return static_cast<int32_t>(static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 3)) << 24);
+    case ECT_INTEGER64:
+        return static_cast<int64_t>(static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 3)) << 24 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 4)) << 32 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 5)) << 40 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 6)) << 48 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 7)) << 56);
+    case ECT_UNSIGNED8:
+        return static_cast<uint8_t>(data->at(entry->totalOffsetInBits / 8));
+    case ECT_UNSIGNED16:
+        return static_cast<uint16_t>(static_cast<uint16_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint16_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8);
+    case ECT_UNSIGNED24:
+        return static_cast<uint32_t>(static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16);
+    case ECT_UNSIGNED32:
+        return static_cast<uint32_t>(static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint32_t>(data->at(entry->totalOffsetInBits / 8 + 3)) << 24);
+    case ECT_UNSIGNED64:
+        return static_cast<uint64_t>(static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8)) |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 2)) << 16 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 3)) << 24 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 4)) << 32 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 5)) << 40 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 6)) << 48 |
+                                    static_cast<uint64_t>(data->at(entry->totalOffsetInBits / 8 + 7)) << 56);
+    default:
+        return "Unknown type";
+    }
+}
+
 std::string Slave::toString() const
 {
     std::stringstream ss;
@@ -170,25 +226,43 @@ std::string Slave::toString() const
 
 PDOValueT Slave::getOutputValue(const std::string_view pdoName, unsigned int subIndex) const
 {
-    const PDOSubEntry* entry = m_output_name_id_to_sub_entries_map.at(pdoName.data()).at(subIndex);
-    return getOutputValue(entry);
+    return getValue(m_output_name_id_to_sub_entries_map.at(pdoName.data()).at(subIndex));
 }
 
-PDOValueT Slave::getOutputValue(std::size_t hash) const
+PDOValueT Slave::getValue(std::size_t hash) const
 {
-    const PDOSubEntry* entry = m_hash_to_entry_map.at(hash);
-    return getOutputValue(entry);
+    return getValue(m_hash_to_entry_map.at(hash));
 }
 
-PDOValueT Slave::getOutputValue(const PDOSubEntry* entry) const
+bool Slave::setInputValue(const std::string_view pdoName, unsigned int subIndex, PDOValueT value)
+{
+    return setInputValue(m_input_name_id_to_sub_entries_map.at(pdoName.data()).at(subIndex), value);
+}
+
+bool Slave::setInputValue(std::size_t hash, PDOValueT value)
+{
+    return setInputValue(m_hash_to_entry_map.at(hash), value);
+}
+
+bool Slave::setInputValue(const PDOSubEntry *entry, PDOValueT value)
 {
     switch(entry->datatype)
     {
     case ECT_INTEGER8:
-        return static_cast<int8_t>(m_outputs->at(entry->totalOffsetInBits / 8));
+        if (auto v = std::get_if<int8_t>(&value))
+        {
+            m_inputs->at(entry->totalOffsetInBits / 8) = static_cast<std::byte>(*v);
+            return true;
+        }
+        return false;
     case ECT_INTEGER16:
-        return static_cast<int16_t>(static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
-                                    static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8);
+        if (auto v = std::get_if<int16_t>(&value))
+        {
+            m_inputs->at(entry->totalOffsetInBits / 8) = static_cast<std::byte>(*v);
+            m_inputs->at(entry->totalOffsetInBits / 8 + 1) = static_cast<std::byte>((*v >> 8));
+            return true;
+        }
+        return false;
     case ECT_INTEGER24:
         return static_cast<int32_t>(static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
                                     static_cast<uint32_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8 |
@@ -208,7 +282,12 @@ PDOValueT Slave::getOutputValue(const PDOSubEntry* entry) const
                                     static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 6)) << 48 |
                                     static_cast<uint64_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 7)) << 56);
     case ECT_UNSIGNED8:
-        return static_cast<uint8_t>(m_outputs->at(entry->totalOffsetInBits / 8));
+        if (auto v = std::get_if<uint8_t>(&value))
+        {
+            m_inputs->at(entry->totalOffsetInBits / 8) = static_cast<std::byte>(*v);
+            return true;
+        }
+        return false;
     case ECT_UNSIGNED16:
         return static_cast<uint16_t>(static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8)) |
                                     static_cast<uint16_t>(m_outputs->at(entry->totalOffsetInBits / 8 + 1)) << 8);
@@ -233,11 +312,6 @@ PDOValueT Slave::getOutputValue(const PDOSubEntry* entry) const
     default:
         return "Unknown type";
     }
-}
-
-PDOValueT Slave::setInputValue(const PDOSubEntry &entry) const
-{
-    return "Unknown type";
 }
 
 bool Slave::validatePDODescription(const PDODescription &desc) const

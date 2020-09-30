@@ -17,14 +17,19 @@ SlaveTreeModel::~SlaveTreeModel()
     delete m_root;
 }
 
+QVariant SlaveTreeModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
+        switch (section)
+        {
+            case 0: return "Hello";
+            default: return "adasdas";
+        }
+    }
 
-//QVariant SlaveTreeModel::headerData(int section, Qt::Orientation orientation, int role) const
-//{
-//    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-//        return m_rootItem->data(section);
-
-//    return QVariant();
-//}
+    return QVariant();
+}
 
 QModelIndex SlaveTreeModel::index(int row, int column, const QModelIndex &parent) const
 {
@@ -56,6 +61,10 @@ Qt::ItemFlags SlaveTreeModel::flags(const QModelIndex &index) const
     if (!index.isValid())
         return Qt::NoItemFlags;
 
+//    if (static_cast<SlaveTreeItem *>(index.internalPointer())->m_type == SlaveTreeItemType::InputEntry && index.column() == NUM_COLUMNS - 1)
+//    {
+//        return Qt::ItemIsEditable;
+//    }
     return QAbstractItemModel::flags(index);
 }
 
@@ -86,7 +95,7 @@ int SlaveTreeModel::rowCount(const QModelIndex &parent) const
 
 int SlaveTreeModel::columnCount(const QModelIndex &parent) const
 {
-    return 3;
+    return NUM_COLUMNS;
 }
 
 QVariant SlaveTreeModel::data(const QModelIndex &index, int role) const
@@ -104,29 +113,46 @@ QVariant SlaveTreeModel::data(const QModelIndex &index, int role) const
             return QString::fromStdString(item->m_values.name);
         case 1:
             return item->m_type == SlaveTreeItemType::InputEntry || item->m_type == SlaveTreeItemType::OutputEntry
-                ? QString::fromStdString(helper::ec_datatype_toString(item->m_values.type))
+                ? QString::fromStdString(helper::ec_datatype_toString(item->m_values.type).data())
                 : QString();
         case 2:
             return item->m_type == SlaveTreeItemType::InputEntry || item->m_type == SlaveTreeItemType::OutputEntry
                 ? QString::fromStdString(PDOValue_toString(item->m_values.value))
                 : QString();
+        case 3:
+            return item->m_type == SlaveTreeItemType::InputEntry
+                ? true
+                : false;
         default:
             return QString();
     }
 }
 
-bool SlaveTreeModel::setData(const QModelIndex &index, const QVariant &value,
-    const int role)
+QString SlaveTreeModel::getName(const QModelIndex &index) const
 {
-    // As in data there will usually be more stuff here, like type conversion to
-    // QVariant, checking values for validity etc.
-    if (!index.isValid() || role != Qt::EditRole) {
-        return false;
-    }
     SlaveTreeItem *item = static_cast<SlaveTreeItem *>(index.internalPointer());
-//    item->m_values.value = value;
-    emit dataChanged(index, index, QVector<int>() << role);
-    return true;
+    return QString::fromStdString(item->m_values.name);
+}
+
+PDOValueT SlaveTreeModel::getValue(const QModelIndex &index) const
+{
+    SlaveTreeItem *item = static_cast<SlaveTreeItem *>(index.internalPointer());
+    return item->m_values.value;
+}
+
+void SlaveTreeModel::setValue(const QModelIndex &index, PDOValueT value) const
+{
+    SlaveTreeItem *item = static_cast<SlaveTreeItem *>(index.internalPointer());
+    if (!m_gui_controller->getEthercatUnit()->setInputValue(item->m_hash, value))
+    {
+        std::cerr << "Could not set new value\n";
+    }
+}
+
+ec_datatype SlaveTreeModel::getDataType(const QModelIndex &index) const
+{
+    SlaveTreeItem *item = static_cast<SlaveTreeItem *>(index.internalPointer());
+    return item->m_values.type;
 }
 
 void SlaveTreeModel::setEntryValueByHash(std::size_t pdoSubEntry_hash)
@@ -147,6 +173,7 @@ void SlaveTreeModel::setupModelData(const std::vector<Slave>* slaves)
         SlaveTreeItem* item = new SlaveTreeItem();
         item->m_parent = parent;
         item->m_type = type;
+        item->m_values.editable = (type == SlaveTreeItemType::InputEntry);
         item->m_parent->m_children.append(item);
         return item;
     };
@@ -174,6 +201,7 @@ void SlaveTreeModel::setupModelData(const std::vector<Slave>* slaves)
                 SlaveTreeItem* pdoSubItem = createItem(SlaveTreeItemType::InputEntry, pdoItem);
                 pdoSubItem->m_values.name = subEntry.name;
                 pdoSubItem->m_values.type = subEntry.datatype;
+                pdoSubItem->m_hash = subEntry.hash;
 
                 m_pdoSubEntryHash_to_item[subEntry.hash] = pdoSubItem;
             }
@@ -195,6 +223,7 @@ void SlaveTreeModel::setupModelData(const std::vector<Slave>* slaves)
                 SlaveTreeItem* pdoSubItem = createItem(SlaveTreeItemType::OutputEntry, pdoItem);
                 pdoSubItem->m_values.name = subEntry.name;
                 pdoSubItem->m_values.type = subEntry.datatype;
+                pdoSubItem->m_hash = subEntry.hash;
 
                 m_pdoSubEntryHash_to_item[subEntry.hash] = pdoSubItem;
             }

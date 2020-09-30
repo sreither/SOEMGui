@@ -1,10 +1,8 @@
 #include "EthercatBus.h"
+#include "Slave.h"
 
 #include <ethercat.h>
 
-#include <iostream>
-
-#include <inttypes.h>
 #include <cstring>
 
 #undef EC_MAXNAME
@@ -178,12 +176,14 @@ PDODescription EthercatBus::createPDODescription(uint16_t slaveId) const
                     bool isSubIndexEntry = std::string(OElist.Name[j]).rfind("SubIndex", 0) == 0;
                     if ((OElist.DataType[j] > 0) && (OElist.BitLength[j] > 0) && !isSubIndexEntry)
                     {
+                        EntryType direction = ODlist.Index[i] < 0x7000 ? Output : Input;
                         pdoE.entries.emplace_back(PDOSubEntry{OElist.Name[j],
                                                               id,
                                                               static_cast<ec_datatype>(OElist.DataType[j]),
-                                                              OElist.BitLength[j]});
+                                                              OElist.BitLength[j],
+                                                              direction});
                         pdoE.entries.back().hash = PDOSubEntry::PDOSubEntryHash{}(slaveId,
-                                                                                  ODlist.Index[i] < 0x7000 ? 0 : 1,
+                                                                                  direction,
                                                                                   pdoE.index,
                                                                                   id);
                         id++;
@@ -245,120 +245,120 @@ EthercatBus::EthercatBus()
 
 }
 
-std::vector<PDOEntry> EthercatBus::si_siiPDO(uint16 slave, uint8 t, int mapoffset, int bitoffset) const
-{
-    std::vector<PDOEntry> result;
+//std::vector<PDOEntry> EthercatBus::si_siiPDO(uint16 slave, uint8 t, int mapoffset, int bitoffset) const
+//{
+//    std::vector<PDOEntry> result;
 
-    uint16 a , w, c, e, er, Size;
-    uint8 eectl;
-    uint16 obj_idx;
-    uint8 obj_subidx;
-    uint8 obj_name;
-    uint8 obj_datatype;
-    uint8 bitlen;
-    int totalsize;
-    ec_eepromPDOt eepPDO;
-    ec_eepromPDOt *PDO;
-    int abs_offset, abs_bit;
-    char str_name[EC_MAXNAME + 1];
+//    uint16 a , w, c, e, er, Size;
+//    uint8 eectl;
+//    uint16 obj_idx;
+//    uint8 obj_subidx;
+//    uint8 obj_name;
+//    uint8 obj_datatype;
+//    uint8 bitlen;
+//    int totalsize;
+//    ec_eepromPDOt eepPDO;
+//    ec_eepromPDOt *PDO;
+//    int abs_offset, abs_bit;
+//    char str_name[EC_MAXNAME + 1];
 
-    eectl = ec_slave[slave].eep_pdi;
-    Size = 0;
-    totalsize = 0;
-    PDO = &eepPDO;
-    PDO->nPDO = 0;
-    PDO->Length = 0;
-    PDO->Index[1] = 0;
-    for (c = 0 ; c < EC_MAXSM ; c++) PDO->SMbitsize[c] = 0;
-    if (t > 1)
-        t = 1;
-    PDO->Startpos = ec_siifind(slave, ECT_SII_PDO + t);
-    if (PDO->Startpos > 0)
-    {
-        a = PDO->Startpos;
-        w = ec_siigetbyte(slave, a++);
-        w += (ec_siigetbyte(slave, a++) << 8);
-        PDO->Length = w;
-        c = 1;
-        /* traverse through all PDOs */
-        do
-        {
-            PDO->nPDO++;
-            PDO->Index[PDO->nPDO] = ec_siigetbyte(slave, a++);
-            PDO->Index[PDO->nPDO] += (ec_siigetbyte(slave, a++) << 8);
-            PDO->BitSize[PDO->nPDO] = 0;
-            c++;
-            /* number of entries in PDO */
-            e = ec_siigetbyte(slave, a++);
-            PDO->SyncM[PDO->nPDO] = ec_siigetbyte(slave, a++);
-            a++;
-            obj_name = ec_siigetbyte(slave, a++);
-            a += 2;
-            c += 2;
+//    eectl = ec_slave[slave].eep_pdi;
+//    Size = 0;
+//    totalsize = 0;
+//    PDO = &eepPDO;
+//    PDO->nPDO = 0;
+//    PDO->Length = 0;
+//    PDO->Index[1] = 0;
+//    for (c = 0 ; c < EC_MAXSM ; c++) PDO->SMbitsize[c] = 0;
+//    if (t > 1)
+//        t = 1;
+//    PDO->Startpos = ec_siifind(slave, ECT_SII_PDO + t);
+//    if (PDO->Startpos > 0)
+//    {
+//        a = PDO->Startpos;
+//        w = ec_siigetbyte(slave, a++);
+//        w += (ec_siigetbyte(slave, a++) << 8);
+//        PDO->Length = w;
+//        c = 1;
+//        /* traverse through all PDOs */
+//        do
+//        {
+//            PDO->nPDO++;
+//            PDO->Index[PDO->nPDO] = ec_siigetbyte(slave, a++);
+//            PDO->Index[PDO->nPDO] += (ec_siigetbyte(slave, a++) << 8);
+//            PDO->BitSize[PDO->nPDO] = 0;
+//            c++;
+//            /* number of entries in PDO */
+//            e = ec_siigetbyte(slave, a++);
+//            PDO->SyncM[PDO->nPDO] = ec_siigetbyte(slave, a++);
+//            a++;
+//            obj_name = ec_siigetbyte(slave, a++);
+//            a += 2;
+//            c += 2;
 
-            PDOEntry pdoE;
-            pdoE.index = PDO->Index[PDO->nPDO];
-            str_name[0] = 0;
-            if(obj_name)
-               ec_siistring(str_name, slave, obj_name);
-            pdoE.name = std::string(str_name);
-
-
-            if (PDO->SyncM[PDO->nPDO] < EC_MAXSM) /* active and in range SM? */
-            {
-                /* read all entries defined in PDO */
-                for (er = 1; er <= e; er++)
-                {
-                    c += 4;
-                    obj_idx = ec_siigetbyte(slave, a++);
-                    obj_idx += (ec_siigetbyte(slave, a++) << 8);
-                    obj_subidx = ec_siigetbyte(slave, a++);
-                    obj_name = ec_siigetbyte(slave, a++);
-                    obj_datatype = ec_siigetbyte(slave, a++);
-                    bitlen = ec_siigetbyte(slave, a++);
-                    abs_offset = mapoffset + (bitoffset / 8);
-                    abs_bit = bitoffset % 8;
-
-                    PDO->BitSize[PDO->nPDO] += bitlen;
-                    a += 2;
-
-                    /* skip entry if filler (0x0000:0x00) */
-                    if(obj_idx || obj_subidx)
-                    {
-                       str_name[0] = 0;
-                       if(obj_name)
-                          ec_siistring(str_name, slave, obj_name);
-
-                       // We have a valid entry, now we need to determine to which PDO entry it belongs
-
-                       pdoE.entries.emplace_back(PDOSubEntry{std::string(str_name),
-                                                 static_cast<uint16_t>(obj_subidx),
-                                                 static_cast<ec_datatype>(obj_datatype),
-                                                 static_cast<uint16_t>(bitlen),
-                                                 static_cast<uint16_t>(abs_offset * 8 + abs_bit)});
+//            PDOEntry pdoE;
+//            pdoE.index = PDO->Index[PDO->nPDO];
+//            str_name[0] = 0;
+//            if(obj_name)
+//               ec_siistring(str_name, slave, obj_name);
+//            pdoE.name = std::string(str_name);
 
 
-                    }
-                    bitoffset += bitlen;
-                    totalsize += bitlen;
-                }
-                PDO->SMbitsize[ PDO->SyncM[PDO->nPDO] ] += PDO->BitSize[PDO->nPDO];
-                Size += PDO->BitSize[PDO->nPDO];
-                c++;
+//            if (PDO->SyncM[PDO->nPDO] < EC_MAXSM) /* active and in range SM? */
+//            {
+//                /* read all entries defined in PDO */
+//                for (er = 1; er <= e; er++)
+//                {
+//                    c += 4;
+//                    obj_idx = ec_siigetbyte(slave, a++);
+//                    obj_idx += (ec_siigetbyte(slave, a++) << 8);
+//                    obj_subidx = ec_siigetbyte(slave, a++);
+//                    obj_name = ec_siigetbyte(slave, a++);
+//                    obj_datatype = ec_siigetbyte(slave, a++);
+//                    bitlen = ec_siigetbyte(slave, a++);
+//                    abs_offset = mapoffset + (bitoffset / 8);
+//                    abs_bit = bitoffset % 8;
 
-                result.push_back(pdoE);
-            }
-            else /* PDO deactivated because SM is 0xff or > EC_MAXSM */
-            {
-                c += 4 * e;
-                a += 8 * e;
-                c++;
-            }
-            if (PDO->nPDO >= (EC_MAXEEPDO - 1)) c = PDO->Length; /* limit number of PDO entries in buffer */
-        }
-        while (c < PDO->Length);
-    }
-    if (eectl) ec_eeprom2pdi(slave); /* if eeprom control was previously pdi then restore */
-    return result;
-}
+//                    PDO->BitSize[PDO->nPDO] += bitlen;
+//                    a += 2;
+
+//                    /* skip entry if filler (0x0000:0x00) */
+//                    if(obj_idx || obj_subidx)
+//                    {
+//                       str_name[0] = 0;
+//                       if(obj_name)
+//                          ec_siistring(str_name, slave, obj_name);
+
+//                       // We have a valid entry, now we need to determine to which PDO entry it belongs
+
+//                       pdoE.entries.emplace_back(PDOSubEntry{std::string(str_name),
+//                                                 static_cast<uint16_t>(obj_subidx),
+//                                                 static_cast<ec_datatype>(obj_datatype),
+//                                                 static_cast<uint16_t>(bitlen),
+//                                                 static_cast<uint16_t>(abs_offset * 8 + abs_bit)});
+
+
+//                    }
+//                    bitoffset += bitlen;
+//                    totalsize += bitlen;
+//                }
+//                PDO->SMbitsize[ PDO->SyncM[PDO->nPDO] ] += PDO->BitSize[PDO->nPDO];
+//                Size += PDO->BitSize[PDO->nPDO];
+//                c++;
+
+//                result.push_back(pdoE);
+//            }
+//            else /* PDO deactivated because SM is 0xff or > EC_MAXSM */
+//            {
+//                c += 4 * e;
+//                a += 8 * e;
+//                c++;
+//            }
+//            if (PDO->nPDO >= (EC_MAXEEPDO - 1)) c = PDO->Length; /* limit number of PDO entries in buffer */
+//        }
+//        while (c < PDO->Length);
+//    }
+//    if (eectl) ec_eeprom2pdi(slave); /* if eeprom control was previously pdi then restore */
+//    return result;
+//}
 

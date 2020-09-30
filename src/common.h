@@ -3,7 +3,6 @@
 
 #include <string>
 #include <iomanip>
-#include <ostream>
 #include <iostream>
 
 #include <ethercattype.h>
@@ -16,7 +15,7 @@ namespace SOEMGui {
 #define EC_TIMEOUTMON 2000
 
 namespace helper {
-inline std::string ec_datatype_toString(ec_datatype dtype)
+inline constexpr std::string_view ec_datatype_toString(ec_datatype dtype)
 {
     switch(dtype)
     {
@@ -68,6 +67,37 @@ inline std::string ec_datatype_toString(ec_datatype dtype)
             return "ECT_OCTET_STRING";
         default:
             return "Unknown type";
+    }
+}
+
+inline constexpr std::pair<long, long> ec_datatype_getLimits(ec_datatype dtype)
+{
+    switch(dtype)
+    {
+        case ECT_BOOLEAN:
+            return std::make_pair(std::numeric_limits<bool>::min(),std::numeric_limits<bool>::max());
+        case ECT_INTEGER8:
+            return std::make_pair(std::numeric_limits<int8_t>::min(),std::numeric_limits<int8_t>::max());
+        case ECT_INTEGER16:
+            return std::make_pair(std::numeric_limits<int16_t>::min(),std::numeric_limits<int16_t>::max());
+        case ECT_INTEGER24:
+            return std::make_pair(0,0);
+        case ECT_INTEGER32:
+            return std::make_pair(std::numeric_limits<int32_t>::min(),std::numeric_limits<int32_t>::max());
+        case ECT_INTEGER64:
+            return std::make_pair(std::numeric_limits<int64_t>::min(),std::numeric_limits<int64_t>::max());
+        case ECT_UNSIGNED8:
+            return std::make_pair(std::numeric_limits<uint8_t>::min(),std::numeric_limits<uint8_t>::max());
+        case ECT_UNSIGNED16:
+            return std::make_pair(std::numeric_limits<uint16_t>::min(),std::numeric_limits<uint16_t>::max());
+        case ECT_UNSIGNED24:
+            return std::make_pair(0,0);
+        case ECT_UNSIGNED32:
+            return std::make_pair(std::numeric_limits<uint32_t>::min(),std::numeric_limits<uint32_t>::max());
+        case ECT_UNSIGNED64:
+            return std::make_pair(std::numeric_limits<uint64_t>::min(),std::numeric_limits<uint64_t>::max());
+        default:
+            return std::make_pair(0,0);
     }
 }
 

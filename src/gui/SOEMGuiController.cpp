@@ -1,4 +1,5 @@
 #include "SOEMGuiController.h"
+#include "../Slave.h"
 
 using namespace SOEMGui;
 
@@ -57,6 +58,7 @@ void SOEMGuiController::run()
                     emit dataAvailable(hash);
                 }
             }
+
 //            m_ethercat_unit->printCurrentSlaveOutputs();
             std::this_thread::sleep_for(1ms);
         }

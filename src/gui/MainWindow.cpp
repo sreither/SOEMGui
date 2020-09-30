@@ -1,9 +1,10 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "InputEditButtonDelegate.h"
 
 #include <QTimer>
 #include <QThread>
-#include <thread>
+#include <QDesktopWidget>
 
 using namespace SOEMGui;
 
@@ -20,7 +21,10 @@ MainWindow::MainWindow(const std::string& ifname, QWidget *parent) :
     m_model = new SlaveTreeModel(m_gui_controller);
     ui->treeView->setModel(m_model);
 
-    connect(ui->pushButton, SIGNAL(released()), m_gui_controller, SLOT(testSlot()));
+    InputEditButtonDelegate* delegate = new InputEditButtonDelegate(ui->treeView);
+    ui->treeView->setItemDelegate(delegate);
+
+    resize(QDesktopWidget().availableGeometry(this).size() * 0.7);
 }
 
 MainWindow::~MainWindow()

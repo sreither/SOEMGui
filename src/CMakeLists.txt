@@ -10,10 +10,12 @@ set(HEADERS
     EthercatUnit.h
     EthercatBus.h
     Slave.h
+    Pdo.h
     common.h
     gui/MainWindow.h
     gui/SlaveTreeModel.h
     gui/SOEMGuiController.h
+    gui/InputEditButtonDelegate.h
     )
 
 set(SOURCES
@@ -23,6 +25,7 @@ set(SOURCES
     gui/MainWindow.cpp
     gui/SlaveTreeModel.cpp
     gui/SOEMGuiController.cpp
+    gui/InputEditButtonDelegate.cpp
     )
 
 set(UIS

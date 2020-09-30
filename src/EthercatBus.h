@@ -3,14 +3,14 @@
 
 #include <string>
 #include <cstddef>
-#include <array>
-
-#include "ethercat.h"
+#include <vector>
 
 #include "common.h"
-#include "Slave.h"
 
 namespace SOEMGui {
+    class Slave;
+    class PDODescription;
+
     class EthercatBus
     {
     public:
@@ -28,7 +28,7 @@ namespace SOEMGui {
         std::string slaveOutputsToString(int slaveId) const;
 
     private:
-        std::vector<PDOEntry> si_siiPDO(uint16 slave, uint8 t, int mapoffset, int bitoffset) const;
+//        std::vector<PDOEntry> si_siiPDO(uint16 slave, uint8 t, int mapoffset, int bitoffset) const;
         PDODescription createPDODescription(uint16_t slaveId) const;
         EthercatBus();
 

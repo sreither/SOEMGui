@@ -6,6 +6,7 @@
 #include "SOEMGuiController.h"
 
 namespace SOEMGui {
+    static constexpr int NUM_COLUMNS = 4;
 
     class SlaveTreeModel : public QAbstractItemModel
     {
@@ -15,16 +16,18 @@ namespace SOEMGui {
         ~SlaveTreeModel();
 
         // QAbstractItemModel interface
-//        QVariant headerData(int section, Qt::Orientation orientation,
-//                            int role = Qt::DisplayRole) const override;
-        QModelIndex index(int row, int column, const QModelIndex &parent) const override;
+        QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+        QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
         Qt::ItemFlags flags(const QModelIndex &childIndex) const override;
-        QModelIndex parent(const QModelIndex &childIndex) const override;
-        int rowCount(const QModelIndex &parent) const override;
-        int columnCount(const QModelIndex &parent) const override;
+        QModelIndex parent(const QModelIndex &childIndex = QModelIndex()) const override;
+        int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+        int columnCount(const QModelIndex &parent = QModelIndex()) const override;
         QVariant data(const QModelIndex &childIndex, int role) const override;
-        bool setData(const QModelIndex &index, const QVariant &value, const int role) override;
 
+        QString getName(const QModelIndex &index) const;
+        PDOValueT getValue(const QModelIndex &index) const;
+        void setValue(const QModelIndex &index, PDOValueT value) const;
+        ec_datatype getDataType(const QModelIndex &index) const;
     public slots:
         void setEntryValueByHash(std::size_t pdoSubEntry_hash);
 
@@ -52,11 +55,11 @@ namespace SOEMGui {
                 std::string name;
                 ec_datatype type;
                 PDOValueT value;
+                bool editable;
             };
 
             SlaveTreeItemType m_type{};
-            std::string m_pdo_name{};
-            int m_pdo_entry_sub_index{-1};
+            std::size_t m_hash{0};
 
             SlaveTreeItemData m_values{};
 
