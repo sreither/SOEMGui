@@ -11,6 +11,10 @@
 
 #include "EthercatUnit.h"
 
+
+#include <QApplication>
+#include "gui/MainWindow.h"
+
 using namespace SOEMGui;
 
 std::atomic<bool> quit(false);
@@ -33,6 +37,13 @@ int main(int argc, char* argv[])
     sigfillset(&sa.sa_mask);
     sigaction(SIGINT,&sa,NULL);
 
+
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+
+    QApplication app(argc, argv);
+    MainWindow mainWindow(argv[1]);
+    mainWindow.show();
+    return app.exec();
 
     const std::string ifname = std::string(argv[1]);
 

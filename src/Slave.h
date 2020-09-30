@@ -7,10 +7,12 @@
 #include <string>
 #include <variant>
 #include <map>
+#include <unordered_map>
 
 #include "common.h"
 
 namespace SOEMGui {
+
     struct PDOSubEntry
     {
         std::string name;
@@ -18,6 +20,18 @@ namespace SOEMGui {
         ec_datatype datatype;
         uint16_t bitLength;
         uint16_t totalOffsetInBits;
+
+
+        struct PDOSubEntryHash
+        {
+            std::size_t operator()(uint16_t slaveId, uint8_t inputOutput, uint16_t pdoIndex, uint16_t pdoSubIndex) const noexcept
+            {
+                std::size_t h=0;
+                helper::hash_combine(h, slaveId, inputOutput, pdoIndex, pdoSubIndex);
+                return h;
+            }
+        };
+        std::size_t hash;
     };
 
     struct PDOEntry
@@ -63,26 +77,35 @@ namespace SOEMGui {
         void setInputs(void* inputPtr);
         void setOutputs(void* outputPtr);
         
+        bool hasEntry(std::size_t hash) const;
+        std::vector<std::size_t> getAllPDOSubEntryHashes() const;
+
         std::string toString() const;
         PDOValueT getOutputValue(const std::string_view pdoName, unsigned int subIndex) const;
+        PDOValueT getOutputValue(std::size_t hash) const;
         PDOValueT setInputValue(const PDOSubEntry& entry) const;
 
         std::vector<std::string> getInputPDONames() const;
         std::vector<std::string> getOutputPDONames() const;
         const PDOEntry &getInputPDOEntryRef(const std::string& name) const;
         const PDOEntry &getOutputPDOEntryRef(const std::string& name) const;
-        std::string getName() const;
+        std::string getName() const;  
+
+        std::string currentOutputsToString() const;
 
     private:
+        PDOValueT getOutputValue(const PDOSubEntry* entry) const;
         bool validatePDODescription(const PDODescription& desc) const;
 
         InputT* m_inputs{nullptr};
         OutputT* m_outputs{nullptr};
         PDODescription m_pdo_description;
-        std::map<std::string, std::map<std::string, const PDOSubEntry*>> m_input_name_name_to_sub_entries_map;
-        std::map<std::string, std::map<uint16_t, const PDOSubEntry*>> m_input_name_id_to_sub_entries_map;
-        std::map<std::string, std::map<std::string, const PDOSubEntry*>> m_output_name_name_to_sub_entries_map;
-        std::map<std::string, std::map<uint16_t, const PDOSubEntry*>> m_output_name_id_to_sub_entries_map;
+        std::unordered_map<std::string, std::unordered_map<std::string, const PDOSubEntry*>> m_input_name_name_to_sub_entries_map;
+        std::unordered_map<std::string, std::unordered_map<uint16_t, const PDOSubEntry*>> m_input_name_id_to_sub_entries_map;
+        std::unordered_map<std::string, std::unordered_map<std::string, const PDOSubEntry*>> m_output_name_name_to_sub_entries_map;
+        std::unordered_map<std::string, std::unordered_map<uint16_t, const PDOSubEntry*>> m_output_name_id_to_sub_entries_map;
+        std::unordered_map<std::size_t, const PDOSubEntry*> m_hash_to_entry_map;
+        std::vector<std::size_t> m_all_hashes;
 
         unsigned int m_ID{0};
         std::string m_name;

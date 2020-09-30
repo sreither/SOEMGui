@@ -24,12 +24,18 @@ EthercatUnit::~EthercatUnit()
     EthercatBus::getBus().closeBus();
 }
 
-void EthercatUnit::initSlaves()
+bool EthercatUnit::initSlaves()
 {
     if (EthercatBus::getBus().waitUntilAllSlavesReachedOP())
     {
         m_slaves = EthercatBus::getBus().createSlaves();
+        m_slaves_initialized = true;
         printSlaves();
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 
@@ -37,7 +43,6 @@ bool EthercatUnit::run()
 {
     if (EthercatBus::getBus().updateBus())
     {
-        printCurrentSlaveOutputs();
         return true;
     }
     else
@@ -49,6 +54,7 @@ bool EthercatUnit::run()
 
 void EthercatUnit::printCurrentSlaveOutputs() const
 {
+#if 1
     static bool firstTime = true;
     static unsigned int linesToClear = 0;
 
@@ -85,14 +91,54 @@ void EthercatUnit::printCurrentSlaveOutputs() const
             ss << "--- " << outName << " ---\n";
             for (unsigned int i = 0; i < entries.size(); i++)
             {
-                ss << std::left << std::setw(20) << entries.at(i).name << ":\t"
+                ss << std::left
+                   << "[" << helper::hex_toString(static_cast<uint16_t>(entries.at(i).totalOffsetInBits / 8)) << "]  "
+                   << std::setw(50) << entries.at(i).name << ":\t"
                    << PDOValue_toString(slave.getOutputValue(outName, i)) << "\n";
             }
         }
     }
     std::cerr << ss.str() << "\n";
-
     firstTime = false;
+#else
+    std::stringstream ss;
+    for (const auto& slave : m_slaves)
+    {
+        ss << "############ " << slave.getName() << " ############\n";
+//        ss << slave.currentOutputsToString();
+        ss << EthercatBus::getBus().slaveOutputsToString(0);
+    }
+    std::cerr << ss.str() << "\n";
+#endif
+}
+
+const std::vector<Slave> *EthercatUnit::getSlaves() const
+{
+    if (m_slaves_initialized)
+    {
+        return &m_slaves;
+    }
+    else
+    {
+        throw std::logic_error("Slaves have not been initialized!");
+    }
+}
+
+PDOValueT EthercatUnit::getValue(std::size_t hash) const
+{
+    for (const Slave& s : m_slaves)
+    {
+        if (s.hasEntry(hash))
+        {
+            return s.getOutputValue(hash);
+        }
+    }
+    throw std::logic_error("No slave has entry with hash" + std::to_string(hash));
+}
+
+bool EthercatUnit::setValue(std::size_t hash, PDOValueT value)
+{
+    return false;
 }
 
 void EthercatUnit::printSlaves() const

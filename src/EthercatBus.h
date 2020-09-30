@@ -25,7 +25,10 @@ namespace SOEMGui {
         bool waitUntilAllSlavesReachedOP();
         std::vector<Slave> createSlaves() const;
 
+        std::string slaveOutputsToString(int slaveId) const;
+
     private:
+        std::vector<PDOEntry> si_siiPDO(uint16 slave, uint8 t, int mapoffset, int bitoffset) const;
         PDODescription createPDODescription(uint16_t slaveId) const;
         EthercatBus();
 

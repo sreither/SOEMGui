@@ -22,28 +22,32 @@ Slave::Slave(unsigned int ID, std::string name, PDODescription pdo) :
         for (const auto& entry : m_pdo_description.slaveOutputs)
         {
             m_output_name_name_to_sub_entries_map.insert(
-                        std::make_pair<std::string, std::map<std::string, const PDOSubEntry*>>(std::string(entry.name), std::map<std::string, const PDOSubEntry*>()));
+                        std::make_pair<std::string, std::unordered_map<std::string, const PDOSubEntry*>>(std::string(entry.name), std::unordered_map<std::string, const PDOSubEntry*>()));
             m_output_name_id_to_sub_entries_map.insert(
-                        std::make_pair<std::string, std::map<uint16_t, const PDOSubEntry*>>(std::string(entry.name), std::map<uint16_t, const PDOSubEntry*>()));
+                        std::make_pair<std::string, std::unordered_map<uint16_t, const PDOSubEntry*>>(std::string(entry.name), std::unordered_map<uint16_t, const PDOSubEntry*>()));
 
             for (const auto & subEntry : entry.entries)
             {
                 m_output_name_name_to_sub_entries_map.at(entry.name)[subEntry.name] = &subEntry;
                 m_output_name_id_to_sub_entries_map.at(entry.name)[subEntry.subIndex] = &subEntry;
+                m_hash_to_entry_map[subEntry.hash] = &subEntry;
+                m_all_hashes.push_back(subEntry.hash);
             }
         }
 
         for (const auto& entry : m_pdo_description.slaveInputs)
         {
             m_input_name_name_to_sub_entries_map.insert(
-                        std::make_pair<std::string, std::map<std::string, const PDOSubEntry*>>(std::string(entry.name), std::map<std::string, const PDOSubEntry*>()));
+                        std::make_pair<std::string, std::unordered_map<std::string, const PDOSubEntry*>>(std::string(entry.name), std::unordered_map<std::string, const PDOSubEntry*>()));
             m_input_name_id_to_sub_entries_map.insert(
-                        std::make_pair<std::string, std::map<uint16_t, const PDOSubEntry*>>(std::string(entry.name), std::map<uint16_t, const PDOSubEntry*>()));
+                        std::make_pair<std::string, std::unordered_map<uint16_t, const PDOSubEntry*>>(std::string(entry.name), std::unordered_map<uint16_t, const PDOSubEntry*>()));
 
             for (const auto & subEntry : entry.entries)
             {
                 m_input_name_name_to_sub_entries_map.at(entry.name)[subEntry.name] = &subEntry;
                 m_input_name_id_to_sub_entries_map.at(entry.name)[subEntry.subIndex] = &subEntry;
+                m_hash_to_entry_map[subEntry.hash] = &subEntry;
+                m_all_hashes.push_back(subEntry.hash);
             }
         }
     }
@@ -57,6 +61,16 @@ void Slave::setInputs(void *inputPtr)
 void Slave::setOutputs(void *outputPtr)
 {
     m_outputs = static_cast<OutputT*>(outputPtr);
+}
+
+bool Slave::hasEntry(std::size_t hash) const
+{
+    return m_hash_to_entry_map.count(hash);
+}
+
+std::vector<std::size_t> Slave::getAllPDOSubEntryHashes() const
+{
+    return m_all_hashes;
 }
 
 std::vector<std::string> Slave::getInputPDONames() const
@@ -112,6 +126,16 @@ std::string Slave::getName() const
     return m_name;
 }
 
+std::string Slave::currentOutputsToString() const
+{
+    std::stringstream ss;
+    for (unsigned int i = 0; i < 50; i++)
+    {
+       ss << helper::hex_toString(i,2) << " : " << static_cast<int>(m_outputs->at(i)) << "\n";
+    }
+    return ss.str();
+}
+
 std::string Slave::toString() const
 {
     std::stringstream ss;
@@ -124,8 +148,8 @@ std::string Slave::toString() const
             {
                 ss << std::left
                    << '\t'
-                   << helper::hex_toString((uint16_t)(ie.index + sub.totalOffsetInBits / 8)) << ":" << sub.totalOffsetInBits % 8 << '\t'
-                   << std::setw(30) << sub.name
+                   << helper::hex_toString((uint16_t)(sub.totalOffsetInBits / 8)) << ":" << sub.totalOffsetInBits % 8 << '\t'
+                   << std::setw(50) << sub.name
                    << helper::ec_datatype_toString(sub.datatype)
                    << '\n';
             }
@@ -146,14 +170,18 @@ std::string Slave::toString() const
 
 PDOValueT Slave::getOutputValue(const std::string_view pdoName, unsigned int subIndex) const
 {
-//    std::cerr << pdoName << " " << subIndex << " " << m_output_name_id_to_sub_entries_map.at(pdoName).size() << "\n";
-//    std::cerr << m_output_name_id_to_sub_entries_map.at(pdoName).count(subIndex) << "\n";
-//    for (auto [key, value] : m_output_name_id_to_sub_entries_map.at(pdoName))
-//    {
-//        std::cerr << key << " - " << value << "\n";
-//    }
-
     const PDOSubEntry* entry = m_output_name_id_to_sub_entries_map.at(pdoName.data()).at(subIndex);
+    return getOutputValue(entry);
+}
+
+PDOValueT Slave::getOutputValue(std::size_t hash) const
+{
+    const PDOSubEntry* entry = m_hash_to_entry_map.at(hash);
+    return getOutputValue(entry);
+}
+
+PDOValueT Slave::getOutputValue(const PDOSubEntry* entry) const
+{
     switch(entry->datatype)
     {
     case ECT_INTEGER8:
@@ -218,16 +246,18 @@ bool Slave::validatePDODescription(const PDODescription &desc) const
         uint16_t lastIndex = 0;
         for (const auto& e : entry)
         {
+            uint16_t entryBitLength = 0;
             for (const auto subE : e.entries)
             {
-                if (lastIndex < e.index + subE.subIndex)
-                {
-                    lastIndex = e.index + subE.subIndex;
-                }
-                else
-                {
-                    return false;
-                }
+                entryBitLength += subE.bitLength;
+            }
+            if (lastIndex < e.index + static_cast<uint16_t>(entryBitLength/32))
+            {
+                lastIndex = e.index;
+            }
+            else
+            {
+                return false;
             }
         }
         return true;
