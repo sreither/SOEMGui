@@ -22,6 +22,9 @@ namespace SOEMGui {
         explicit MainWindow(const std::string& ifname, QWidget *parent = 0);
         ~MainWindow();
 
+    private slots:
+        void on_pushButton_connect_released();
+
     private:
         Ui::MainWindow *ui;
 

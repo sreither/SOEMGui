@@ -20,11 +20,11 @@ bool EthercatBus::openBus(const std::string_view ifname)
 {
     if (ec_init(ifname.data()) > 0)
     {
-        std::cerr << "Initialized bus\n";
+        std::cerr << "Initialized bus on adapter " << ifname.data() << "\n";
         return true;
     }
 
-    std::cerr << "Could not init EtherCAT\n";
+    std::cerr << "Could not init EtherCAT on adpater " << ifname.data() << "\n";
     return false;
 }
 
@@ -136,6 +136,18 @@ std::vector<Slave> EthercatBus::createSlaves() const
     return slaves;
 }
 
+std::vector<std::string> EthercatBus::getAdapterNames() const
+{
+    std::vector<std::string> result;
+    ec_adaptert* adapter = ec_find_adapters();
+    while (adapter != nullptr)
+    {
+        result.emplace_back(adapter->name);
+        adapter = adapter->next;
+    }
+    return result;
+}
+
 std::string EthercatBus::slaveOutputsToString(int slaveId) const
 {
     std::stringstream ss;
@@ -156,6 +168,9 @@ PDODescription EthercatBus::createPDODescription(uint16_t slaveId) const
     ODlist.Entries = 0;
     memset(&ODlist, 0, sizeof(ODlist));
 
+    uint16_t totalOffsetBits_input = 0;
+    uint16_t totalOffsetBits_output = 0;
+
     if(ec_readODlist(slaveId, &ODlist))
     {
         for(unsigned int i = 0 ; i < ODlist.Entries ; i++)
@@ -170,23 +185,41 @@ PDODescription EthercatBus::createPDODescription(uint16_t slaveId) const
 
                 memset(&OElist, 0, sizeof(OElist));
                 ec_readOE(i, &ODlist, &OElist);
+
+                EntryType direction = ODlist.Index[i] < 0x7000 ? Output : Input;
                 uint16_t id = 0;
+
                 for(uint16_t j = 0 ; j < ODlist.MaxSub[i]+1 ; j++)
                 {
-                    bool isSubIndexEntry = std::string(OElist.Name[j]).rfind("SubIndex", 0) == 0;
-                    if ((OElist.DataType[j] > 0) && (OElist.BitLength[j] > 0) && !isSubIndexEntry)
+                    bool isSubIndex000Entry = std::string(OElist.Name[j]).rfind("SubIndex 000", 0) == 0;
+                    bool isPadding = std::string(OElist.Name[j]).rfind("SubIndex", 0) == 0;
+                    if (!isSubIndex000Entry)
                     {
-                        EntryType direction = ODlist.Index[i] < 0x7000 ? Output : Input;
-                        pdoE.entries.emplace_back(PDOSubEntry{OElist.Name[j],
-                                                              id,
-                                                              static_cast<ec_datatype>(OElist.DataType[j]),
-                                                              OElist.BitLength[j],
-                                                              direction});
-                        pdoE.entries.back().hash = PDOSubEntry::PDOSubEntryHash{}(slaveId,
-                                                                                  direction,
-                                                                                  pdoE.index,
-                                                                                  id);
-                        id++;
+                        if (!isPadding)
+                        {
+                            pdoE.entries.emplace_back(PDOSubEntry{OElist.Name[j],
+                                                                  id,
+                                                                  static_cast<ec_datatype>(OElist.DataType[j]),
+                                                                  OElist.BitLength[j],
+                                                                  direction,
+                                                                  direction == Output ? totalOffsetBits_output : totalOffsetBits_input});
+                            pdoE.entries.back().hash = PDOSubEntry::PDOSubEntryHash{}(slaveId,
+                                                                                      direction,
+                                                                                      pdoE.index,
+                                                                                      id);
+                            id++;
+                        }
+
+
+                        if (direction == Output)
+                        {
+                            totalOffsetBits_output += OElist.BitLength[j];
+                        }
+                        else
+                        {
+                            totalOffsetBits_input += OElist.BitLength[j];
+                        }
+
                     }
                 }
 
@@ -212,29 +245,6 @@ PDODescription EthercatBus::createPDODescription(uint16_t slaveId) const
     else
     {
         std::cerr << "Could not read ODList\n";
-    }
-
-    // Calculating offsets
-    for (auto & entry : pdoDescription.slaveInputs)
-    {
-        unsigned int slaveIBitOffset = std::max(entry.index - 1 - 0x7000, 0) * 64;
-        uint16_t iBitOffset = 0;
-        for (auto& subEntry : entry.entries)
-        {
-            subEntry.totalOffsetInBits = slaveIBitOffset + iBitOffset;
-            iBitOffset += subEntry.bitLength;
-        }
-    }
-
-    for (auto & entry : pdoDescription.slaveOutputs)
-    {
-        unsigned int slaveOBitOffset = std::max(entry.index - 1 - 0x6000, 0) * 64;
-        unsigned int oBitOffset = 0;
-        for (auto& subEntry : entry.entries)
-        {
-            subEntry.totalOffsetInBits = slaveOBitOffset + oBitOffset;
-            oBitOffset += subEntry.bitLength;
-        }
     }
 
     return pdoDescription;
@@ -329,12 +339,16 @@ EthercatBus::EthercatBus()
 //                       if(obj_name)
 //                          ec_siistring(str_name, slave, obj_name);
 
+//                       printf("  [0x%4.4X.%1d] 0x%4.4X:0x%2.2X 0x%2.2X", abs_offset, abs_bit, obj_idx, obj_subidx, bitlen);
+//                       printf(" %-12s %s\n", helper::ec_datatype_toString((ec_datatype)obj_datatype).data(), str_name);
+
 //                       // We have a valid entry, now we need to determine to which PDO entry it belongs
 
 //                       pdoE.entries.emplace_back(PDOSubEntry{std::string(str_name),
 //                                                 static_cast<uint16_t>(obj_subidx),
 //                                                 static_cast<ec_datatype>(obj_datatype),
 //                                                 static_cast<uint16_t>(bitlen),
+//                                                             static_cast<EntryType>(t),
 //                                                 static_cast<uint16_t>(abs_offset * 8 + abs_bit)});
 
 

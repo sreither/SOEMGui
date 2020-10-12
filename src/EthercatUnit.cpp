@@ -9,17 +9,14 @@
 
 using namespace SOEMGui;
 
-EthercatUnit::EthercatUnit(const std::string_view adapterName)
-{
-    if (!EthercatBus::getBus().openBus(adapterName))
-    {
-        std::cerr << "Could not open ethercat bus, try executing as root\n";
-    }
-}
-
 EthercatUnit::~EthercatUnit()
 {
     EthercatBus::getBus().closeBus();
+}
+
+bool EthercatUnit::connectToAdapter(const std::string_view adapterName)
+{
+    return EthercatBus::getBus().openBus(adapterName);
 }
 
 bool EthercatUnit::initSlaves()
@@ -28,7 +25,7 @@ bool EthercatUnit::initSlaves()
     {
         m_slaves = EthercatBus::getBus().createSlaves();
         m_slaves_initialized = true;
-        printSlaves();
+//        printSlaves();
         return true;
     }
     else
@@ -53,7 +50,7 @@ bool EthercatUnit::run()
 
 void EthercatUnit::printCurrentSlaveOutputs() const
 {
-#if 1
+#if 0
     static bool firstTime = true;
     static unsigned int linesToClear = 0;
 
@@ -123,6 +120,11 @@ const std::vector<Slave> *EthercatUnit::getSlaves() const
     }
 }
 
+std::vector<std::string> EthercatUnit::getAvailableAdapterNames() const
+{
+    return EthercatBus::getBus().getAdapterNames();
+}
+
 PDOValueT EthercatUnit::getValue(std::size_t hash) const
 {
     for (const Slave& s : m_slaves)
@@ -135,10 +137,10 @@ PDOValueT EthercatUnit::getValue(std::size_t hash) const
     throw std::logic_error("No slave has entry with hash" + std::to_string(hash));
 }
 
-bool EthercatUnit::setInputValue(unsigned int slaveId, const std::string_view pdoName, unsigned int subIndex, PDOValueT value)
-{
-    return m_slaves.at(slaveId).setInputValue(pdoName, subIndex, value);
-}
+//bool EthercatUnit::setInputValue(unsigned int slaveId, const std::string_view pdoName, unsigned int subIndex, PDOValueT value)
+//{
+//    return m_slaves.at(slaveId).setInputValue(pdoName, subIndex, value);
+//}
 
 bool EthercatUnit::setInputValue(std::size_t hash, PDOValueT value)
 {

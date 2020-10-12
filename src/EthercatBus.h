@@ -9,6 +9,7 @@
 
 namespace SOEMGui {
     class Slave;
+    class PDOEntry;
     class PDODescription;
 
     class EthercatBus
@@ -24,6 +25,8 @@ namespace SOEMGui {
 
         bool waitUntilAllSlavesReachedOP();
         std::vector<Slave> createSlaves() const;
+
+        std::vector<std::string> getAdapterNames() const;
 
         std::string slaveOutputsToString(int slaveId) const;
 

@@ -30,6 +30,9 @@ namespace SOEMGui {
         ec_datatype getDataType(const QModelIndex &index) const;
     public slots:
         void setEntryValueByHash(std::size_t pdoSubEntry_hash);
+        void fillTreeView();
+    signals:
+        void setupFinished();
 
     private:
         void setupModelData(const std::vector<Slave>* slaves);

@@ -15,11 +15,16 @@ namespace SOEMGui {
         ~SOEMGuiController();
 
         EthercatUnit* getEthercatUnit() const;
+        QStringList getAdapterNames() const;
 
     signals:
         void dataAvailable(std::size_t pdoSubEntry_hash);
+        void ethercatUnitConnected();
+        void connectionLost();
+
     public slots:
         void testSlot() const;
+        void connectToAdapter(const QString ifname);
 
     private:
         void run();

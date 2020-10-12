@@ -47,7 +47,8 @@ int main(int argc, char* argv[])
 
     const std::string ifname = std::string(argv[1]);
 
-    EthercatUnit unit{ifname};;
+    EthercatUnit unit;
+    unit.connectToAdapter(ifname);
     unit.initSlaves();
     while (true)
     {

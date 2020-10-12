@@ -24,7 +24,13 @@ MainWindow::MainWindow(const std::string& ifname, QWidget *parent) :
     InputEditButtonDelegate* delegate = new InputEditButtonDelegate(ui->treeView);
     ui->treeView->setItemDelegate(delegate);
 
+//    connect(m_model, &SlaveTreeModel::setupFinished, ui->treeView, &QTreeView::update);
+
     resize(QDesktopWidget().availableGeometry(this).size() * 0.7);
+
+    // Fill combobox
+    auto adapterNames = m_gui_controller->getAdapterNames();
+    ui->comboBox_adapterNames->addItems(adapterNames);
 }
 
 MainWindow::~MainWindow()
@@ -32,4 +38,10 @@ MainWindow::~MainWindow()
     delete m_gui_controller;
     delete m_model;
     delete ui;
+}
+
+void SOEMGui::MainWindow::on_pushButton_connect_released()
+{
+    QString ifname = ui->comboBox_adapterNames->currentText();
+    m_gui_controller->connectToAdapter(ifname);
 }

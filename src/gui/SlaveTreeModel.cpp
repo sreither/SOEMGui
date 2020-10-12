@@ -7,9 +7,11 @@ using namespace SOEMGui;
 
 SlaveTreeModel::SlaveTreeModel(const SOEMGuiController *controller) : m_gui_controller(controller)
 {
-    setupModelData(controller->getEthercatUnit()->getSlaves());
-
     connect(m_gui_controller, &SOEMGuiController::dataAvailable, this, &SlaveTreeModel::setEntryValueByHash);
+    connect(m_gui_controller, &SOEMGuiController::ethercatUnitConnected, this, &SlaveTreeModel::fillTreeView);
+
+    m_root = new SlaveTreeItem();
+    m_root->m_type = SlaveTreeItemType::RootDummy;
 }
 
 SlaveTreeModel::~SlaveTreeModel()
@@ -23,8 +25,10 @@ QVariant SlaveTreeModel::headerData(int section, Qt::Orientation orientation, in
     {
         switch (section)
         {
-            case 0: return "Hello";
-            default: return "adasdas";
+            case 0: return "Name";
+            case 1: return "Type";
+            case 2: return "Value";
+            default: return QString();
         }
     }
 
@@ -164,11 +168,17 @@ void SlaveTreeModel::setEntryValueByHash(std::size_t pdoSubEntry_hash)
     emit dataChanged(index, index, QVector<int>() << Qt::EditRole);
 }
 
+void SlaveTreeModel::fillTreeView()
+{
+    auto unit = m_gui_controller->getEthercatUnit();
+    if (unit)
+    {
+        setupModelData(unit->getSlaves());
+    }
+}
+
 void SlaveTreeModel::setupModelData(const std::vector<Slave>* slaves)
 {
-    m_root = new SlaveTreeItem();
-    m_root->m_type = SlaveTreeItemType::RootDummy;
-
     auto createItem = [&](SlaveTreeItemType type, SlaveTreeItem* parent){
         SlaveTreeItem* item = new SlaveTreeItem();
         item->m_parent = parent;
@@ -229,6 +239,7 @@ void SlaveTreeModel::setupModelData(const std::vector<Slave>* slaves)
             }
         }
     }
+    emit layoutChanged();
 }
 SlaveTreeModel::SlaveTreeItem::~SlaveTreeItem()
 {
