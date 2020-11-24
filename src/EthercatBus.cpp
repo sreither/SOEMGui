@@ -5,6 +5,8 @@
 
 #include <cstring>
 
+#include <chrono>
+
 #undef EC_MAXNAME
 #define EC_MAXNAME 100
 
@@ -39,8 +41,17 @@ bool EthercatBus::updateBus()
 {
     if (m_busReady)
     {
+        auto start = std::chrono::steady_clock::now();
+
         ec_send_processdata();
         int lastWorkCounter = ec_receive_processdata(EC_TIMEOUTMON * 10);
+
+        auto end = std::chrono::steady_clock::now();
+
+        std::cerr
+          << "Update took: "
+        << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " µs\n";
+
         if (lastWorkCounter >= m_expectedWKC)
         {
             return true;
